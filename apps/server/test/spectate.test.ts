@@ -21,6 +21,8 @@ const CAPACITY: Capacity = 3;
 const HIDDEN_INFO = false;
 /** 开局后先走几步（每步选轮到的人的第一个合法动作），让场上有藏起来的牌。 */
 const STEPS = 4;
+/** 只在服务端的字段（牌堆顺序、种子等），观战的人永远拿不到。 */
+const SERVER_ONLY = ["deck", "seed"];
 /** 这份状态里看得到几样藏起来的东西（手牌之类）。 */
 function secretsSeen(_game: GameState): number {
   return 0;
@@ -200,7 +202,7 @@ describe("观战和公开房间", () => {
     }
 
     const blind = latest.get(viewer)!.game!;
-    expect(blind.deck).toBeUndefined();
+    for (const key of SERVER_ONLY) expect((blind as unknown as Record<string, unknown>)[key]).toBeUndefined();
     // 每位玩家自己看到的那一份里，自己身上的秘密。
     const owners = players.reduce((total, client) => {
       const game = latest.get(client)!.game!;
@@ -213,7 +215,7 @@ describe("观战和公开房间", () => {
 
     expect((await access(host, { spectatorsSeeAll: true })).ok).toBe(true);
     const godView = (await updateWhere(viewer, (snapshot) => snapshot.access.spectatorsSeeAll)).game!;
-    expect(godView.deck).toBeUndefined();
+    for (const key of SERVER_ONLY) expect((godView as unknown as Record<string, unknown>)[key]).toBeUndefined();
     expect(secretsSeen(godView)).toBeGreaterThanOrEqual(owners);
 
     // 观战的人发动作会被拒。

@@ -13,6 +13,7 @@ import {
 import { art, backdropFor, FX_FRAMES, seatColor } from "./art.js";
 import { ACTION_HELP, CardBack, CardView, cardIcon, cardName } from "./cards.js";
 import GameRules from "./GameRules.js";
+import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 
 interface GameBoardProps {
@@ -28,6 +29,11 @@ interface GameBoardProps {
   readonly onCommand: (command: GameCommand) => void;
   readonly onRematch: (accept: boolean) => void;
   readonly onDissolve: () => void;
+  /** 观战时从这位玩家的座位看。 */
+  readonly watchId: string;
+  readonly onWatch: (playerId: string) => void;
+  /** 观战的人离开。 */
+  readonly onLeave: () => void;
 }
 
 function useCountdown(room: LobbyRoomSnapshot): number | null {
@@ -283,17 +289,20 @@ function Seat({
   );
 }
 
-function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onDissolve }: GameBoardProps) {
+function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onDissolve, watchId, onWatch, onLeave }: GameBoardProps) {
   const game = room.game!;
   const member = room.members.find((candidate) => candidate.id === socket.id);
-  const myId = member?.playerId ?? "";
+  // 观战的人没有座位：牌桌按 watchId 那位玩家的座位摆（me 就是他），但什么都不能点，也不叫「你」。
+  const spectating = !member;
+  const myId = member?.playerId ?? watchId;
+  const selfId = spectating ? "" : myId;
   const isHost = member?.isHost ?? false;
   const myIndex = game.players.findIndex((player) => player.id === myId);
   const me = game.players[myIndex];
   const actor = game.players[game.actor];
-  const myMove = game.phase === "playing" && game.actor === myIndex && myIndex !== -1;
+  const myMove = !spectating && game.phase === "playing" && game.actor === myIndex && myIndex !== -1;
   const secondsLeft = useCountdown(room);
-  const nameOf = (playerId: string) => (playerId === myId ? "你" : game.players.find((player) => player.id === playerId)?.name ?? "?");
+  const nameOf = (playerId: string) => (playerId === selfId ? "你" : game.players.find((player) => player.id === playerId)?.name ?? "?");
   const online = (playerId: string) => room.members.find((candidate) => candidate.playerId === playerId)?.connected ?? false;
   const firstVersion = useRef(game.version);
   const shownNotice = game.version === firstVersion.current ? notice : "";
@@ -349,7 +358,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
         send({ type: "HIT" });
       } else if (myMove && game.stage === "turn" && key === "s") {
         send({ type: "STAY" });
-      } else if (game.stage === "roundEnd" && game.phase === "playing" && key === "n" && !game.ready.includes(myId)) {
+      } else if (game.stage === "roundEnd" && game.phase === "playing" && key === "n" && !spectating && !game.ready.includes(myId)) {
         send({ type: "READY" });
       }
     };
@@ -399,7 +408,9 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
   if (game.phase === "finished") headline = "对局结束";
   else if (game.stage === "roundEnd") {
     headline = `第 ${game.round} 轮结算`;
-    detail = game.ready.includes(myId) ? `等其他人（${game.ready.length}/${game.players.length}）` : "看完结算点「下一轮」";
+    detail = spectating
+      ? `等玩家点「下一轮」（${game.ready.length}/${game.players.length}）`
+      : game.ready.includes(myId) ? `等其他人（${game.ready.length}/${game.players.length}）` : "看完结算点「下一轮」";
   } else if (myMove && game.stage === "turn") {
     headline = "轮到你了";
     detail = me && me.numbers.length > 0 ? `要牌还是停牌？现在停牌本轮得 ${live?.total ?? 0} 分。` : "要牌还是停牌？你面前还没有数字牌。";
@@ -430,6 +441,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
         <div className="f7-topbar-right">
           {themeToggle}
           <GameRules brutal={game.config.brutal} />
+          <GameRoomMenu room={room} />
           {isHost && <button className="quiet-button danger" type="button" onClick={onDissolve}>解散</button>}
           {connection}
         </div>
@@ -446,7 +458,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
               key={game.players[index]!.id}
               game={game}
               index={index}
-              me={index === myIndex}
+              me={!spectating && index === myIndex}
               online={online(game.players[index]!.id)}
               fresh={fresh}
               pickable={canPick(index)}
@@ -455,12 +467,13 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
             />
           ))}
           {game.stage === "roundEnd" && game.phase === "playing" && !hideSummary && (
-            <RoundSummary game={game} myId={myId} secondsLeft={secondsLeft} busy={busy} onReady={() => send({ type: "READY" })} onHide={() => setHideSummary(true)} />
+            <RoundSummary game={game} myId={selfId} secondsLeft={secondsLeft} busy={busy} onReady={() => send({ type: "READY" })} onHide={() => setHideSummary(true)} />
           )}
         </div>
 
         <aside className="f7-side">
-          <section className={myMove || (game.stage === "roundEnd" && !game.ready.includes(myId)) ? "f7-panel f7-action mine" : "f7-panel f7-action"}>
+          {spectating && <SpectateBar room={room} watchId={myId} onWatch={onWatch} onLeave={onLeave} />}
+          <section className={myMove || (!spectating && game.stage === "roundEnd" && !game.ready.includes(myId)) ? "f7-panel f7-action mine" : "f7-panel f7-action"}>
             <div className="f7-action-head">
               {actor && game.stage !== "roundEnd" && <i className="f7-dot" style={{ background: seatColor(actor.color) }} />}
               <h2>{headline}</h2>
@@ -504,11 +517,13 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                 </div>
               </div>
             )}
-            {game.stage === "roundEnd" && game.phase === "playing" && (
+            {game.stage === "roundEnd" && game.phase === "playing" && (!spectating || hideSummary) && (
               <div className="f7-buttons">
-                <button className="primary-button" type="button" disabled={busy || game.ready.includes(myId)} onClick={() => send({ type: "READY" })}>
-                  {game.ready.includes(myId) ? "已准备" : "下一轮"}<small>N</small>
-                </button>
+                {!spectating && (
+                  <button className="primary-button" type="button" disabled={busy || game.ready.includes(myId)} onClick={() => send({ type: "READY" })}>
+                    {game.ready.includes(myId) ? "已准备" : "下一轮"}<small>N</small>
+                  </button>
+                )}
                 {hideSummary && <button className="quiet-button" type="button" onClick={() => setHideSummary(false)}>看结算</button>}
               </div>
             )}
@@ -544,7 +559,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
           </section>
         </aside>
       </div>
-      {game.phase === "finished" && <FinalDialog game={game} room={room} myId={myId} onRematch={onRematch} />}
+      {game.phase === "finished" && <FinalDialog game={game} room={room} myId={selfId} spectating={spectating} onRematch={onRematch} onLeave={onLeave} />}
     </div>
   );
 }
@@ -595,15 +610,26 @@ function RoundSummary({ game, myId, secondsLeft, busy, onReady, onHide }: {
         })}
       </ol>
       <footer>
-        <button className="primary-button" type="button" disabled={busy || ready} onClick={onReady}>
-          {ready ? `等其他人 ${game.ready.length}/${game.players.length}` : "下一轮"}{secondsLeft !== null && <small>{secondsLeft}s</small>}
-        </button>
+        {myId ? (
+          <button className="primary-button" type="button" disabled={busy || ready} onClick={onReady}>
+            {ready ? `等其他人 ${game.ready.length}/${game.players.length}` : "下一轮"}{secondsLeft !== null && <small>{secondsLeft}s</small>}
+          </button>
+        ) : (
+          <span className="f7-muted">等玩家点「下一轮」 {game.ready.length}/{game.players.length}{secondsLeft !== null ? ` · ${secondsLeft}s` : ""}</span>
+        )}
       </footer>
     </section>
   );
 }
 
-function FinalDialog({ game, room, myId, onRematch }: { game: GameState; room: LobbyRoomSnapshot; myId: string; onRematch: (accept: boolean) => void }) {
+function FinalDialog({ game, room, myId, spectating, onRematch, onLeave }: {
+  game: GameState;
+  room: LobbyRoomSnapshot;
+  myId: string;
+  spectating: boolean;
+  onRematch: (accept: boolean) => void;
+  onLeave: () => void;
+}) {
   const result = game.finalResult!;
   const accepted = room.rematch?.acceptedIds.includes(socket.id ?? "") ?? false;
   const won = (id: string) => result.winners.includes(id);
@@ -625,7 +651,14 @@ function FinalDialog({ game, room, myId, onRematch }: { game: GameState; room: L
             </li>
           ))}
         </ol>
-        {room.rematch && (
+        {spectating ? (
+          <div className="f7-rematch">
+            <span>{room.rematch ? `等玩家决定要不要再来一局（${room.rematch.acceptedIds.length}/${room.members.length} 人同意）` : "对局结束"}</span>
+            <div className="gm-panel-actions">
+              <button className="quiet-button" type="button" onClick={onLeave}>离开观战</button>
+            </div>
+          </div>
+        ) : room.rematch && (
           <div className="f7-rematch">
             <span>再来一局？还剩 {Math.ceil(room.rematch.remainingMs / 1000)} 秒（{room.rematch.acceptedIds.length}/{room.members.length} 人同意）</span>
             <div className="gm-panel-actions">

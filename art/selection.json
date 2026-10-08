@@ -4,5 +4,22 @@
   "backdrop-2": "out/r1/backdrop-s12.png",
   "backdrop-3": "out/r1/backdrop-s13.png",
   "freeze": "out/r1/icon-freeze/icon-freeze-8.png",
-  "flip3": "out/r1/icon-flip3/icon-flip3-7.png"
+  "flip3": "out/r1/icon-flip3/icon-flip3-7.png",
+  "second": "out/r1/icon-second/icon-second-7.png",
+  "coins": "out/r1/icon-coins/icon-coins-2.png",
+  "double": "out/r1/icon-double/icon-double-40.png",
+  "bust": "out/r1/icon-bust/icon-bust-17.png",
+  "flip7": "out/r1/icon-flip7/icon-flip7-3.png",
+  "_flip7-plain": "out/r1/icon-flip7/icon-flip7-40.png",
+  "emblem": "out/r1/emblem/emblem-3.png",
+  "avatar-0": "out/r1/avatar/avatar-21.png",
+  "avatar-1": "out/r1/avatar/avatar-37.png",
+  "avatar-2": "out/r1/avatar/avatar-14.png",
+  "avatar-3": "out/r1/avatar/avatar-34.png",
+  "avatar-4": "out/r1/avatar/avatar-56.png",
+  "avatar-5": "out/r1/avatar/avatar.png",
+  "avatar-6": "out/r1/avatar/avatar-40.png",
+  "avatar-7": "out/r1/avatar/avatar-38.png",
+  "avatar-8": "out/r1/avatar/avatar-26.png",
+  "avatar-9": "out/r1/avatar/avatar-12.png"
 }

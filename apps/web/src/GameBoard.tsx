@@ -245,6 +245,7 @@ function Seat({
             <span className={`f7-status s-${status}`}>{player.flip7 ? "翻七！" : isActor && game.stage === "turn" ? "思考中" : STATUS_LABEL[player.status]}</span>
           </small>
         </span>
+        {pickable && hint && <span className="f7-pick-hint">{hint}</span>}
         <span className="f7-seat-score" title="本轮得分 / 总分">
           <b className={live.total < 0 ? "neg" : ""}>{roundOver && player.lastRound ? (player.lastRound.total >= 0 ? `+${player.lastRound.total}` : player.lastRound.total) : live.total}</b>
           <i>总 {player.score}</i>
@@ -259,12 +260,19 @@ function Seat({
       </div>
       {(status === "busted" || status === "flip7" || status === "frozen") && (
         <span className={`f7-stamp s-${status}`} style={stampStyle} aria-hidden="true">
-          {status === "busted" && <span className="f7-fx bust" style={{ "--frames": FX_FRAMES.bust, backgroundImage: `url(${art.bustFx})` } as CSSProperties} />}
-          {status === "flip7" && <span className="f7-fx flip7" style={{ "--frames": FX_FRAMES.flip7, backgroundImage: `url(${art.flip7Fx})` } as CSSProperties} />}
-          <b>{status === "busted" ? "爆了" : status === "flip7" ? "翻七" : "冻结"}</b>
+          <span className="f7-stamp-inner">
+            {status === "busted" && <span className="f7-fx bust" style={{ ...stampStyle, "--frames": FX_FRAMES.bust, backgroundImage: `url(${art.bustFx})` } as CSSProperties} />}
+            <b>
+              {status === "flip7" ? (
+                <span className="f7-fx flip7" style={{ ...stampStyle, "--frames": FX_FRAMES.flip7, backgroundImage: `url(${art.flip7Fx})` } as CSSProperties} />
+              ) : (
+                <img src={status === "busted" ? art.bust : art.freeze} alt="" />
+              )}
+              {status === "busted" ? "爆了" : status === "flip7" ? "翻七" : "冻结"}
+            </b>
+          </span>
         </span>
       )}
-      {pickable && hint && <span className="f7-pick-hint">{hint}</span>}
     </>
   );
   const style = { "--seat": seatColor(player.color) } as CSSProperties;
@@ -429,7 +437,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
 
       <div className="f7-layout">
         <div
-          className={layout.side ? "f7-seats side" : "f7-seats"}
+          className={["f7-seats", layout.side ? "side" : "", layout.cw >= 72 ? "big-cards" : ""].join(" ")}
           ref={seatsRef}
           style={{ "--cols": layout.cols, "--cw": `${layout.cw}px`, "--cf": `${layout.cf}px`, "--ci": `${layout.ci}px` } as CSSProperties}
         >
@@ -485,7 +493,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
               </div>
             )}
             {myMove && game.stage === "flip7Choice" && (
-              <div className="f7-target-list">
+              <div className="f7-target-list flip7">
                 <button className="primary-button" type="button" disabled={busy} onClick={() => send({ type: "FLIP7", target: null })}>自己 +15</button>
                 <div>
                   {game.players.map((player, index) => index === myIndex ? null : (

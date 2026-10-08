@@ -47,9 +47,11 @@
     linear-gradient(45deg, transparent calc(50% - var(--px)), #e5332a calc(50% - var(--px)) calc(50% + var(--px)), transparent calc(50% + var(--px))),
     linear-gradient(-45deg, transparent calc(50% - var(--px)), #e5332a calc(50% - var(--px)) calc(50% + var(--px)), transparent calc(50% + var(--px)));
 }
-/* 修饰牌：金色牌面 */
-.f7-card.mod { --c: #4a2a06; background: #f0c050; box-shadow: 0 0 0 var(--px) var(--edge), inset 0 0 0 var(--px) #fff2b8, inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--px) #b3821c; }
-.f7-card.mod.times2 { background: #ff9a3c; box-shadow: 0 0 0 var(--px) var(--edge), inset 0 0 0 var(--px) #ffe0b0, inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--px) #b85a10; }
+/* 修饰牌：浅米黄牌面、金边，大牌时上面加金币 / 双星图标 */
+.f7-card.mod { --c: #6b3a06; align-content: center; gap: 6px; background: #fff1c2; box-shadow: 0 0 0 var(--px) var(--edge), inset 0 0 0 calc(var(--px) * 2) #e0a830, inset 0 0 0 calc(var(--px) * 3) #fff8dc; }
+.f7-card.mod.times2 { --c: #a33c06; background: #ffe2c4; box-shadow: 0 0 0 var(--px) var(--edge), inset 0 0 0 calc(var(--px) * 2) #f08a2e, inset 0 0 0 calc(var(--px) * 3) #fff0e0; }
+.f7-card.mod img { display: none; width: var(--ci, 32px); height: var(--ci, 32px); }
+.f7-seats.big-cards .f7-card.mod img { display: block; }
 /* 行动牌：浅蓝牌面 + 图标 */
 .f7-card.act { align-content: center; gap: 4px; background: #dfe9f8; box-shadow: 0 0 0 var(--px) var(--edge), inset 0 0 0 var(--px) #7fa8d8; }
 .f7-card.act img { width: var(--ci, 32px); height: var(--ci, 32px); }
@@ -171,7 +173,8 @@ button.f7-seat.pickable:hover { filter: brightness(1.15); }
 .f7-row-gap { flex: 0 0 6px; }
 
 /* 爆了 / 翻七 / 冻结 的印章，跟在对应的牌后面出现 */
-.f7-stamp { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; animation: f7-stamp 320ms steps(4, jump-end) both; }
+/* 印章靠右放（右边通常是空位），尽量不盖住数字 */
+.f7-stamp { position: absolute; inset: 0; display: grid; place-items: center end; padding-right: 6%; pointer-events: none; animation: f7-stamp 320ms steps(4, jump-end) both; }
 .f7-stamp b {
   position: relative;
   padding: 4px 14px;
@@ -182,13 +185,23 @@ button.f7-seat.pickable:hover { filter: brightness(1.15); }
   box-shadow: 0 0 0 var(--px) var(--edge), inset 0 0 0 var(--px) currentColor;
   text-shadow: calc(var(--px) * 1) calc(var(--px) * 1) 0 var(--edge);
 }
+.f7-seats:not(.side) .f7-stamp { align-items: end; padding-bottom: 6px; }
+.f7-seats:not(.side) .f7-stamp b { padding: 2px 10px; font-size: 24px; }
+.f7-stamp b { display: flex; align-items: center; gap: 8px; }
+.f7-stamp b img { width: 32px; height: 32px; }
 .f7-stamp.s-busted b { color: #ffd8d0; background: #b8202c; }
 .f7-stamp.s-flip7 b { color: #2a1c06; background: var(--gold); text-shadow: none; }
 .f7-stamp.s-frozen b { color: #e8f8ff; background: #2a78b8; }
 @keyframes f7-stamp { 0% { opacity: 0; transform: scale(1.4); } 100% { opacity: 1; transform: none; } }
-.f7-fx { position: absolute; width: 96px; height: 96px; background-repeat: no-repeat; background-size: calc(var(--frames) * 100%) 100%; animation: f7-fx 900ms steps(var(--frames), jump-none) 1 both; animation-delay: inherit; }
+/* 特效帧条：爆炸 128px 垫在印章后面，播完就空了；翻七的奖杯烟花 64px 当印章里的图标，最后停在奖杯上 */
+.f7-stamp-inner { display: grid; place-items: center; }
+.f7-stamp-inner > * { grid-area: 1 / 1; }
+.f7-fx { display: block; background-repeat: no-repeat; background-size: calc(var(--frames) * 100%) 100%; animation: f7-fx 1s steps(var(--frames), jump-none) 1 both; }
+.f7-fx.bust { width: 128px; height: 128px; }
+.f7-fx.flip7 { width: 64px; height: 64px; }
 @keyframes f7-fx { from { background-position: 0 0; } to { background-position: 100% 0; } }
-.f7-pick-hint { --rim: #fff2b8; --shade: #7a5410; position: absolute; right: 10px; bottom: 8px; padding: 2px 10px; color: #2a1c06; background: var(--gold); font-size: 24px; }
+.f7-pick-hint { --rim: #fff2b8; --shade: #7a5410; flex: 0 0 auto; padding: 2px 10px; color: #2a1c06; background: var(--gold); font-size: 24px; line-height: 1.25; white-space: nowrap; }
+.f7-seats.side .f7-pick-hint { grid-column: 1 / -1; justify-self: start; }
 
 /* ---------- 右栏 ---------- */
 .f7-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
@@ -214,7 +227,8 @@ button.f7-seat.pickable:hover { filter: brightness(1.15); }
 .app-shell .f7-target-list .quiet-button { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 2px 6px; padding: 6px 8px; text-align: left; }
 .app-shell .f7-target-list .quiet-button small { flex-basis: 100%; color: var(--muted); font-size: 12px; }
 .app-shell .f7-target-list > .primary-button { flex: 0 0 auto; min-height: 56px; margin: 0; padding: 0 14px; font-size: 24px; }
-.f7-target-list > .primary-button + div { grid-template-columns: 1fr; }
+.f7-target-list.flip7 { flex-direction: column; align-items: stretch; }
+.f7-target-list.flip7 > div { flex: 0 0 auto; }
 
 .f7-deck { display: flex; align-items: center; gap: 12px; padding-top: 10px; border-top: var(--px) solid var(--panel-2); }
 .f7-deck .f7-card.back { --cw: 40px; flex: 0 0 40px; }

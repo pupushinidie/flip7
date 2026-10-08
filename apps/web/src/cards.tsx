@@ -69,6 +69,7 @@ export function CardView({ card, className = "", style, title }: CardViewProps) 
   if (card.kind === "plus" || card.kind === "times2") {
     return (
       <span className={`f7-card mod ${card.kind} ${className}`} style={style} title={title ?? ACTION_HELP[card.kind]} aria-label={name}>
+        <img src={card.kind === "plus" ? art.coins : art.double} alt="" />
         <b>{name}</b>
       </span>
     );

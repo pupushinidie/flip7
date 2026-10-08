@@ -16,13 +16,13 @@ export const art = {
   emblem: `${BASE}emblem.png`,
   /** 座位头像 0–9（32px）。 */
   avatar: (index: number) => `${BASE}avatar-${index % 10}.png`,
-  /** 爆掉的烟雾、翻七的烟花：横排帧条（见 art/export.py）。 */
+  /** 爆掉的爆炸烟雾、翻七的奖杯烟花：横排帧条，每帧 64px（见 art/export.py）。 */
   bustFx: `${BASE}fx-bust.png`,
   flip7Fx: `${BASE}fx-flip7.png`,
 };
 
 /** 动画帧条的帧数（和 art/export.py 一致）。 */
-export const FX_FRAMES = { bust: 8, flip7: 8 } as const;
+export const FX_FRAMES = { bust: 10, flip7: 9 } as const;
 
 /** 座位色：10 种，开局按入座顺序分。 */
 export const SEAT_COLORS = [

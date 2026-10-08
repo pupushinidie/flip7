@@ -1,0 +1,162 @@
+/*
+ * 幸运数字（Lucky Numbers）的牌桌皮肤。叠在 app-pixel.css 的夜色像素皮肤之上（夜间配色；白天版由 day-theme.ts 生成）。
+ * 中间是自己的 4×4 棋盘、牌池、手里的牌和桌面明牌，下面是其他玩家的棋盘，右边是动作记录和聊天。
+ * 数字牌 = PixelLab 画的空白牌面（--tile-img）+ 像素字体的数字。字号只用 12 的整数倍；图片一律 pixelated。
+ */
+
+.lk-screen small, .app-shell .lk-showcase small { font-size: 12px; font-weight: 400; }
+.lk-screen img, .app-shell .lk-hero, .app-shell .lk-showcase img { image-rendering: pixelated; }
+
+/* 通用的像素描边（四边 1 像素黑边 + 内侧亮边/暗边） */
+.lk-panel, .lk-prompt, .lk-board-panel, .lk-timer {
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--edge),
+    0 var(--px) 0 0 var(--edge),
+    calc(var(--px) * -1) 0 0 0 var(--edge),
+    var(--px) 0 0 0 var(--edge),
+    inset var(--px) var(--px) 0 0 var(--rim),
+    inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--shade);
+}
+
+/* ---------- 数字牌 ---------- */
+.lk-tile {
+  --size: 40px;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--size);
+  height: var(--size);
+  background: var(--tile-img) 0 0 / 100% 100% no-repeat, #f3ead2;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 var(--px) var(--edge);
+}
+.lk-tile b { color: #1f4a2c; font-size: 24px; font-weight: 400; line-height: 1; text-shadow: var(--px) var(--px) 0 rgba(255, 255, 255, 0.7); }
+.lk-tile.hidden { background: #2f6b45; box-shadow: 0 0 0 var(--px) var(--edge), inset 0 0 0 calc(var(--px) * 2) #7fd38f; }
+.lk-tile.hidden::after { content: "?"; color: #d9ffe0; font-size: 24px; }
+.lk-tile.big { --size: 64px; }
+.lk-tile.big b { font-size: 36px; }
+
+/* ---------- 首页：主图和几张牌 ---------- */
+.app-shell .lk-hero {
+  display: block;
+  width: 100%;
+  max-width: 512px;
+  margin-top: 26px;
+  box-shadow: 0 0 0 var(--px) var(--edge), 0 0 0 calc(var(--px) * 2) var(--rim), 0 0 0 calc(var(--px) * 3) var(--edge);
+}
+.app-shell .lk-showcase { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.app-shell .lk-showcase img { width: 32px; height: 32px; }
+
+/* ---------- 牌桌整体 ---------- */
+.app-shell.lk-game { width: min(1440px, calc(100% - 24px)); }
+.lk-screen { display: flex; flex-direction: column; gap: 10px; padding-bottom: 18px; }
+.lk-topbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 2px; border-bottom: var(--px) solid var(--rim); }
+.lk-topbar-right { display: flex; align-items: center; gap: 10px; }
+.lk-turn { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
+.lk-turn-who { display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
+.lk-turn-who.mine { color: var(--gold); }
+.lk-timer { padding: 2px 8px; color: var(--gold); background: var(--panel); font-weight: 400; }
+.lk-timer.low { color: var(--bad); }
+.lk-dot { display: inline-block; flex: 0 0 auto; width: 10px; height: 10px; margin-right: 6px; box-shadow: 0 0 0 var(--px) var(--edge); }
+
+.lk-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+.lk-main { display: flex; min-width: 0; flex-direction: column; gap: 12px; }
+.lk-side { display: flex; flex-direction: column; gap: 12px; }
+
+.lk-prompt { --rim: var(--panel-2); display: flex; align-items: center; min-height: 36px; padding: 6px 12px; color: var(--text); font-size: 12px; background: var(--panel); }
+.lk-prompt.mine { --rim: var(--gold); color: var(--gold); background: #3a2c10; }
+.lk-feedback { margin: 0; color: var(--ok); font-size: 12px; }
+.lk-feedback.error { color: var(--bad); }
+.lk-muted { margin: 0; color: var(--muted); font-size: 12px; }
+
+.lk-panel, .lk-board-panel { padding: 10px 12px 12px; background: var(--panel); }
+.lk-panel h3, .lk-board-panel h3 { display: flex; align-items: center; gap: 4px; margin: 0 0 10px; color: var(--gold); font-size: 12px; font-weight: 400; }
+.lk-panel h3 small, .lk-board-panel h3 small { margin-left: auto; color: var(--muted); }
+
+/* ---------- 自己的棋盘 + 牌池 / 手牌 ---------- */
+.lk-center { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px; }
+.lk-board-panel.mine { --rim: var(--seat); }
+.lk-board-panel.active { --rim: var(--gold); background: #3a2c10; }
+.lk-board-panel.offline { opacity: 0.6; }
+.lk-offline { margin-left: 6px; color: var(--bad); }
+
+.lk-grid { --cell: 64px; display: grid; grid-template-columns: repeat(4, var(--cell)); gap: 6px; padding: 6px; background: var(--bg); box-shadow: inset 0 0 0 var(--px) var(--panel-2); }
+.lk-grid:not(.mine) { --cell: 40px; gap: 4px; padding: 4px; }
+.lk-cell { position: relative; display: grid; place-items: center; width: var(--cell); height: var(--cell); padding: 0; border: 0; background: var(--panel-2); font: inherit; }
+.lk-grid:not(.mine) .lk-tile { --size: 40px; }
+.lk-grid:not(.mine) .lk-tile b { font-size: 12px; }
+.lk-grid.mine .lk-tile { --size: 64px; }
+.lk-grid.mine .lk-tile b { font-size: 36px; }
+/* 对角线四格淡淡标一下，开局的牌在这里 */
+.lk-cell:nth-child(5n + 1) { box-shadow: inset 0 0 0 var(--px) var(--rim); }
+.lk-cell.last .lk-tile { box-shadow: 0 0 0 var(--px) var(--edge), 0 0 0 calc(var(--px) * 3) var(--gold); }
+button.lk-cell { cursor: pointer; }
+.lk-cell.can-place { background: color-mix(in srgb, var(--ok) 28%, var(--panel-2)); box-shadow: inset 0 0 0 var(--px) var(--ok); animation: lk-blink 1s steps(2, jump-none) infinite; }
+.lk-cell.can-swap .lk-tile { box-shadow: 0 0 0 var(--px) var(--edge), 0 0 0 calc(var(--px) * 2) var(--gold); }
+.lk-cell.can-swap:hover .lk-tile, .lk-cell.can-place:hover { filter: brightness(1.15); transform: translateY(calc(var(--px) * -1)); }
+@keyframes lk-blink { 50% { box-shadow: inset 0 0 0 calc(var(--px) * 2) var(--ok); } }
+
+.lk-supply { display: flex; flex-direction: column; gap: 12px; width: 180px; }
+.lk-pile { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px; border: 0; color: var(--text); font: inherit; font-size: 12px; background: none; cursor: pointer; }
+.lk-pile .lk-tile { --size: 48px; }
+.lk-pile:disabled { cursor: default; opacity: 0.7; }
+.lk-pile:hover:not(:disabled) .lk-tile { transform: translateY(calc(var(--px) * -2)); }
+.lk-pile:not(:disabled) span { color: var(--gold); }
+.lk-hand { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 150px; }
+.lk-hand h3 { align-self: stretch; }
+.lk-hand.active { --rim: var(--gold); }
+.lk-hand small { color: var(--muted); }
+.app-shell .lk-hand .quiet-button { margin: 0; }
+
+/* 桌面明牌 */
+.lk-table-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+.lk-take { padding: 0; border: 0; background: none; font: inherit; }
+button.lk-take { cursor: pointer; }
+button.lk-take .lk-tile { box-shadow: 0 0 0 var(--px) var(--edge), 0 0 0 calc(var(--px) * 2) var(--ok); }
+button.lk-take:hover .lk-tile { transform: translateY(calc(var(--px) * -2)); }
+.lk-take.dim { opacity: 0.45; }
+
+.lk-others { display: flex; flex-wrap: wrap; gap: 14px; }
+
+/* 日志 */
+.lk-log ul { max-height: 260px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.lk-log li { padding: 3px 0; color: var(--muted); font-size: 12px; line-height: 1.6; border-bottom: var(--px) solid var(--panel-2); }
+.lk-log li:first-child { color: var(--text); }
+.lk-log li:last-child { border-bottom: 0; }
+.lk-chat .room-chat { margin: 0; }
+
+/* 终局 */
+.app-shell .gm-panel.lk-final { width: min(440px, 100%); text-align: center; }
+.lk-final-icon { display: block; width: 64px; height: 64px; margin: 0 auto 6px; }
+.lk-standings { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; text-align: left; }
+.lk-standings > li { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: var(--panel-2); box-shadow: 0 0 0 var(--px) var(--edge); }
+.lk-standings > li.winner { box-shadow: 0 0 0 var(--px) var(--edge), inset 0 0 0 var(--px) var(--gold); }
+.lk-standings strong { flex: 1; min-width: 0; color: var(--text); font-size: 12px; font-weight: 400; }
+.lk-standings > li.winner strong { color: var(--gold); }
+.lk-standings span { color: var(--muted); font-size: 12px; }
+.lk-rematch { margin-top: 16px; color: var(--muted); font-size: 12px; text-align: left; }
+.lk-rematch .gm-panel-actions { align-items: center; margin-top: 12px; }
+.app-shell .lk-rematch .primary-button { flex: 1; min-height: 40px; margin: 0; }
+.lk-screen .gm-panel-actions .quiet-button { flex: 0 0 auto; white-space: nowrap; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1100px) {
+  .lk-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .lk-topbar { flex-wrap: wrap; }
+  .lk-topbar-right { flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+  .lk-topbar-right > * { flex-shrink: 0; white-space: nowrap; }
+  .lk-grid.mine { --cell: 56px; }
+  .lk-grid.mine .lk-tile { --size: 56px; }
+  .lk-grid.mine .lk-tile b { font-size: 24px; }
+  .lk-supply { flex-direction: row; width: 100%; }
+  .lk-supply > * { flex: 1; }
+}
+@media (max-width: 400px) {
+  .lk-grid.mine { --cell: 48px; gap: 4px; }
+  .lk-grid.mine .lk-tile { --size: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lk-cell.can-place { animation: none; }
+}

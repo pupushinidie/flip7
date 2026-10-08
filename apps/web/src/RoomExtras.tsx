@@ -116,18 +116,20 @@ export function GameRoomMenu({ room }: { room: LobbyRoomSnapshot }) {
 }
 
 /** 观战的人在牌桌上看到的条：换一个座位的视角、离开。 */
-export function SpectateBar({ room, watchId, onWatch, onLeave }: {
+export function SpectateBar({ room, watchId, onWatch, onLeave, showSeats = true }: {
   room: LobbyRoomSnapshot;
   watchId: string;
   onWatch: (playerId: string) => void;
   onLeave: () => void;
+  /** 牌桌不分座位视角（所有人看到的一样）时不显示换座位。 */
+  showSeats?: boolean;
 }) {
   const players = room.game?.players ?? [];
   return (
     <div className="spectate-bar">
       <strong>观战中</strong>
-      <span className="spectate-hint">{HIDDEN_INFO ? (room.access.spectatorsSeeAll ? `能看到${SECRET} · ` : "只看公开信息 · ") : ""}从谁的座位看：</span>
-      <span className="spectate-seats">
+      <span className="spectate-hint">{HIDDEN_INFO ? (room.access.spectatorsSeeAll ? `能看到${SECRET}` : "只看公开信息") : ""}{HIDDEN_INFO && showSeats ? " · " : ""}{showSeats ? "从谁的座位看：" : ""}</span>
+      {showSeats && <span className="spectate-seats">
         {players.map((player) => (
           <button
             key={player.id}
@@ -139,7 +141,7 @@ export function SpectateBar({ room, watchId, onWatch, onLeave }: {
             {player.name}
           </button>
         ))}
-      </span>
+      </span>}
       <button className="quiet-button" type="button" onClick={onLeave}>离开观战</button>
     </div>
   );

@@ -98,6 +98,11 @@ function closed(client: TestSocket): Promise<string> {
   return new Promise((resolve) => client.once("room:closed", ({ reason }) => resolve(reason)));
 }
 
+/** 服务端字段发到前端时要么去掉，要么换成空数组。 */
+function hiddenField(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.length === 0);
+}
+
 function seatOf(client: TestSocket): string {
   return latest.get(client)?.members.find((member) => member.id === client.id)?.playerId ?? "";
 }
@@ -202,7 +207,7 @@ describe("观战和公开房间", () => {
     }
 
     const blind = latest.get(viewer)!.game!;
-    for (const key of SERVER_ONLY) expect((blind as unknown as Record<string, unknown>)[key]).toBeUndefined();
+    for (const key of SERVER_ONLY) expect(hiddenField((blind as unknown as Record<string, unknown>)[key])).toBe(true);
     // 每位玩家自己看到的那一份里，自己身上的秘密。
     const owners = players.reduce((total, client) => {
       const game = latest.get(client)!.game!;
@@ -215,7 +220,7 @@ describe("观战和公开房间", () => {
 
     expect((await access(host, { spectatorsSeeAll: true })).ok).toBe(true);
     const godView = (await updateWhere(viewer, (snapshot) => snapshot.access.spectatorsSeeAll)).game!;
-    for (const key of SERVER_ONLY) expect((godView as unknown as Record<string, unknown>)[key]).toBeUndefined();
+    for (const key of SERVER_ONLY) expect(hiddenField((godView as unknown as Record<string, unknown>)[key])).toBe(true);
     expect(secretsSeen(godView)).toBeGreaterThanOrEqual(owners);
 
     // 观战的人发动作会被拒。

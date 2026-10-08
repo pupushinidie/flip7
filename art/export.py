@@ -1,4 +1,4 @@
-"""把 selection.json 里选定的图导出到 apps/web/public/art/（tile.png、clover.png、hero.png）。用法：python export.py"""
+"""把 selection.json 里选定的图导出到 apps/web/public/art/<名字>.png。用法：python export.py"""
 from __future__ import annotations
 
 import json

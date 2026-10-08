@@ -58,7 +58,7 @@ function OnlineRooms({ rooms, connected }: { rooms: PublicRoomSummary[]; connect
                     {player.isActive && <small className="turn">行动中</small>}
                     {player.isWinner && <small className="winner">胜者</small>}
                     {!player.connected && <small>离线</small>}
-                    {player.score !== undefined && <b>{player.score}<span> 格</span></b>}
+                    {player.score !== undefined && <b>{player.score}<span> 分</span></b>}
                   </li>
                 ))}
               </ul>

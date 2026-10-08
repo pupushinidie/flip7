@@ -1,12 +1,12 @@
 import type { DayPalette } from "./day-theme";
 
 /**
- * 白天版调色表（幸运数字，和欲罢不能同一套夜色蓝灰）。
+ * 白天版调色表（翻七，和欲罢不能、幸运数字同一套夜色蓝灰）。
  * 深色底、面板、按钮 → 白底浅色；深色像素描边保留；浅色字 → 深色字。
  * 数字牌、座位色、按钮里的金色红色这些内容色不换。
  */
 export const palette: DayPalette = {
-  files: ["app-pixel.css", "lucky.css"],
+  files: ["app-pixel.css", "flip7.css"],
   colors: {
     "#0c1120": "#ffffff", // 底色、输入框
     "#101729": "#f8f9fc", // 底色的棋盘纹
@@ -20,6 +20,7 @@ export const palette: DayPalette = {
     "#080c17": "#c9d3e3", // 面板暗边
     "#5a78ad": "#ffffff", // 按钮亮边
     "#0b1120": "#aebad0", // 按钮暗边
+    "#1a3a5c": "#d8ecfa", // 被冻结的座位
   },
   text: {
     "#eef3fb": "#1d2433",

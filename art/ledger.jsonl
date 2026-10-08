@@ -3,3 +3,8 @@
 {"time": "2026-10-07 22:31:25", "name": "backdrop-s13", "endpoint": "/create-image-pixen", "usage": {"type": "usd", "usd": 0.013127853976355658}, "seconds": 96.2}
 {"time": "2026-10-07 22:32:32", "name": "hero-s21", "endpoint": "/create-image-pixen", "usage": {"type": "usd", "usd": 0.009958007838990954}, "seconds": 66.6}
 {"time": "2026-10-07 22:33:50", "name": "hero-s22", "endpoint": "/create-image-pixen", "usage": {"type": "usd", "usd": 0.010553292433420817}, "seconds": 78.2}
+{"time": "2026-10-07 22:35:07", "name": "hero-s23", "endpoint": "/create-image-pixen", "usage": {"type": "usd", "usd": 0.010978128989537556}, "seconds": 77.2}
+{"time": "2026-10-07 22:37:19", "name": "icon-freeze", "endpoint": "/generate-image-v2", "usage": {"type": "usd", "usd": 0.095}, "seconds": 131.6, "status": "completed"}
+{"time": "2026-10-07 22:40:15", "name": "icon-flip3", "endpoint": "/generate-image-v2", "usage": {"type": "usd", "usd": 0.095}, "seconds": 175.7, "status": "completed"}
+{"time": "2026-10-07 22:43:22", "name": "icon-second", "endpoint": "/generate-image-v2", "usage": {"type": "usd", "usd": 0.095}, "seconds": 186.9, "status": "completed"}
+{"time": "2026-10-07 22:47:11", "name": "icon-coins", "endpoint": "/generate-image-v2", "usage": {"type": "usd", "usd": 0.095}, "seconds": 229.8, "status": "completed"}

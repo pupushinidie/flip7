@@ -1,0 +1,8 @@
+{
+  "hero": "out/r1/hero-s21.png",
+  "backdrop-1": "out/r1/backdrop-s11.png",
+  "backdrop-2": "out/r1/backdrop-s12.png",
+  "backdrop-3": "out/r1/backdrop-s13.png",
+  "freeze": "out/r1/icon-freeze/icon-freeze-8.png",
+  "flip3": "out/r1/icon-flip3/icon-flip3-7.png"
+}

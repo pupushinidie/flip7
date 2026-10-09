@@ -150,6 +150,8 @@ button.f7-seat.pickable:hover { filter: brightness(1.15); }
 .f7-seat-name small { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .f7-tag { --rim: var(--gold-2); --shade: #2a1c06; padding: 0 4px; color: var(--gold); background: #3a2c10; font-size: 12px; font-style: normal; line-height: 16px; }
 .f7-tag.off { --rim: #f25c5c; --shade: #3d0a12; color: #ffd8d0; background: #6e1020; }
+.f7-tag.bot { --rim: #8ec0ff; --shade: #0e2550; color: #d8e8ff; background: #2a62c0; }
+.f7-tag.auto { --rim: var(--gold-2); --shade: #2a1c06; color: var(--gold); background: #3a2c10; }
 .f7-chip-icon { width: 16px; height: 16px; }
 .f7-status { --rim: #3d5482; padding: 0 4px; color: var(--muted); background: var(--panel-2); line-height: 16px; }
 .f7-status.s-active { color: var(--ok); }

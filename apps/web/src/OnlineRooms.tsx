@@ -16,7 +16,7 @@ function OnlineRooms({ rooms, connected, busy, onJoin }: {
   onJoin: (roomId: string, spectate: boolean) => void;
 }) {
   const onlineCount = rooms.reduce(
-    (total, room) => total + room.players.filter((player) => player.connected).length,
+    (total, room) => total + room.players.filter((player) => player.connected && !player.bot).length,
     0,
   );
   const admin = useAdminToken();
@@ -64,6 +64,7 @@ function OnlineRooms({ rooms, connected, busy, onJoin }: {
                   <li key={player.name} className={player.connected ? "" : "offline"}>
                     <span className={player.connected ? "presence online" : "presence"} title={player.connected ? "在线" : "离线"} />
                     <span className="online-room-name">{player.name}</span>
+                    {player.bot && <small>人机</small>}
                     {player.isHost && room.status === "waiting" && <small>房主</small>}
                     {player.isActive && <small className="turn">行动中</small>}
                     {player.isWinner && <small className="winner">胜者</small>}

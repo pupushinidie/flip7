@@ -22,6 +22,7 @@ export {
   timerSeconds,
 } from "./engine.js";
 export type { CreateOptions, NewPlayer } from "./engine.js";
+export { botCommand } from "./bot.js";
 export { createRng } from "./rng.js";
 export type { Rng } from "./rng.js";
 export { CAPACITY_OPTIONS, DEFAULT_ROOM_ACCESS } from "./roomTypes.js";

@@ -7,6 +7,7 @@ import {
   type GameCommand,
   type GameEvent,
   type GameState,
+  type LobbyMember,
   type LobbyRoomSnapshot,
   type Player,
 } from "@flip7/game";
@@ -28,6 +29,8 @@ interface GameBoardProps {
   readonly chat: ReactNode;
   readonly onCommand: (command: GameCommand) => void;
   readonly onRematch: (accept: boolean) => void;
+  /** 打开 / 取消自己的托管。 */
+  readonly onAuto: (enabled: boolean) => void;
   readonly onDissolve: () => void;
   /** 观战时从这位玩家的座位看。 */
   readonly watchId: string;
@@ -208,6 +211,7 @@ function Seat({
   index,
   me,
   online,
+  seated,
   fresh,
   pickable,
   hint,
@@ -217,6 +221,8 @@ function Seat({
   index: number;
   me: boolean;
   online: boolean;
+  /** 坐在这里的人（人机 / 托管标签用）。 */
+  seated: LobbyMember | undefined;
   fresh: Fresh;
   pickable: boolean;
   hint: string | null;
@@ -245,6 +251,9 @@ function Seat({
           <strong>{me ? `${player.name}（你）` : player.name}</strong>
           <small>
             {index === game.dealer && <em className="f7-tag dealer">庄</em>}
+            {seated?.bot && <em className="f7-tag bot">人机</em>}
+            {/* 离线的人也由人机代打 */}
+            {!seated?.bot && (seated?.auto || !online) && <em className="f7-tag auto">托管</em>}
             {!online && <em className="f7-tag off">离线</em>}
             {player.secondChance && <img className="f7-chip-icon" src={art.secondChance} alt="二次机会" title={ACTION_HELP.secondChance} />}
             {player.actions.map((card) => <img key={card.id} className="f7-chip-icon" src={cardIcon(card.kind)!} alt={cardName(card)} title={ACTION_HELP[card.kind as "freeze"]} />)}
@@ -289,7 +298,7 @@ function Seat({
   );
 }
 
-function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onDissolve, watchId, onWatch, onLeave }: GameBoardProps) {
+function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onAuto, onDissolve, watchId, onWatch, onLeave }: GameBoardProps) {
   const game = room.game!;
   const member = room.members.find((candidate) => candidate.id === socket.id);
   // 观战的人没有座位：牌桌按 watchId 那位玩家的座位摆（me 就是他），但什么都不能点，也不叫「你」。
@@ -303,7 +312,12 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
   const myMove = !spectating && game.phase === "playing" && game.actor === myIndex && myIndex !== -1;
   const secondsLeft = useCountdown(room);
   const nameOf = (playerId: string) => (playerId === selfId ? "你" : game.players.find((player) => player.id === playerId)?.name ?? "?");
-  const online = (playerId: string) => room.members.find((candidate) => candidate.playerId === playerId)?.connected ?? false;
+  const memberOf = (playerId: string) => room.members.find((candidate) => candidate.playerId === playerId);
+  const online = (playerId: string) => memberOf(playerId)?.connected ?? false;
+  // 托管中：人机替我行动，操作区给一个「取消托管」
+  const autoPlaying = member?.auto === true;
+  // 结算画面只等在线、没托管的真人点「下一轮」（人机、托管、离线的人不用点）
+  const readyNeeded = Math.max(1, room.members.filter((candidate) => candidate.connected && !candidate.bot && !candidate.auto).length);
   const firstVersion = useRef(game.version);
   const shownNotice = game.version === firstVersion.current ? notice : "";
   const send = (command: GameCommand) => { if (!busy) onCommand(command); };
@@ -409,8 +423,11 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
   else if (game.stage === "roundEnd") {
     headline = `第 ${game.round} 轮结算`;
     detail = spectating
-      ? `等玩家点「下一轮」（${game.ready.length}/${game.players.length}）`
-      : game.ready.includes(myId) ? `等其他人（${game.ready.length}/${game.players.length}）` : "看完结算点「下一轮」";
+      ? `等玩家点「下一轮」（${game.ready.length}/${readyNeeded}）`
+      : game.ready.includes(myId) ? `等其他人（${game.ready.length}/${readyNeeded}）` : "看完结算点「下一轮」";
+  } else if (autoPlaying) {
+    headline = "托管中";
+    detail = myMove ? "人机正在替你走。" : "轮到你时人机替你走。";
   } else if (myMove && game.stage === "turn") {
     headline = "轮到你了";
     detail = me && me.numbers.length > 0 ? `要牌还是停牌？现在停牌本轮得 ${live?.total ?? 0} 分。` : "要牌还是停牌？你面前还没有数字牌。";
@@ -460,6 +477,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
               index={index}
               me={!spectating && index === myIndex}
               online={online(game.players[index]!.id)}
+              seated={memberOf(game.players[index]!.id)}
               fresh={fresh}
               pickable={canPick(index)}
               hint={pickHint(index)}
@@ -467,7 +485,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
             />
           ))}
           {game.stage === "roundEnd" && game.phase === "playing" && !hideSummary && (
-            <RoundSummary game={game} myId={selfId} secondsLeft={secondsLeft} busy={busy} onReady={() => send({ type: "READY" })} onHide={() => setHideSummary(true)} />
+            <RoundSummary game={game} myId={selfId} readyNeeded={readyNeeded} secondsLeft={secondsLeft} busy={busy} onReady={() => send({ type: "READY" })} onHide={() => setHideSummary(true)} />
           )}
         </div>
 
@@ -480,14 +498,19 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
               {game.phase === "playing" && secondsLeft !== null && <b className={secondsLeft <= 10 ? "f7-timer low" : "f7-timer"}>{secondsLeft}s</b>}
             </div>
             {detail && <p className="f7-action-detail">{detail}</p>}
+            {autoPlaying && game.phase === "playing" && (
+              <div className="f7-buttons">
+                <button className="quiet-button f7-auto-cancel" type="button" onClick={() => onAuto(false)}>取消托管</button>
+              </div>
+            )}
 
-            {myMove && game.stage === "turn" && (
+            {myMove && !autoPlaying && game.stage === "turn" && (
               <div className="f7-buttons">
                 <button className="primary-button f7-hit" type="button" disabled={busy} onClick={() => send({ type: "HIT" })}>要牌<small>H</small></button>
                 <button className="quiet-button f7-stay" type="button" disabled={busy} onClick={() => send({ type: "STAY" })}>停牌<small>S</small></button>
               </div>
             )}
-            {myMove && giving && (
+            {myMove && !autoPlaying && giving && (
               <div className="f7-target-list">
                 <CardView card={giving} className="f7-giving" />
                 <div>
@@ -505,7 +528,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                 </div>
               </div>
             )}
-            {myMove && game.stage === "flip7Choice" && (
+            {myMove && !autoPlaying && game.stage === "flip7Choice" && (
               <div className="f7-target-list flip7">
                 <button className="primary-button" type="button" disabled={busy} onClick={() => send({ type: "FLIP7", target: null })}>自己 +15</button>
                 <div>
@@ -576,9 +599,11 @@ function scoreParts(game: GameState, index: number): string {
   return parts.join(" · ");
 }
 
-function RoundSummary({ game, myId, secondsLeft, busy, onReady, onHide }: {
+function RoundSummary({ game, myId, readyNeeded, secondsLeft, busy, onReady, onHide }: {
   game: GameState;
   myId: string;
+  /** 要等几个人点「下一轮」。 */
+  readyNeeded: number;
   secondsLeft: number | null;
   busy: boolean;
   onReady: () => void;
@@ -612,10 +637,10 @@ function RoundSummary({ game, myId, secondsLeft, busy, onReady, onHide }: {
       <footer>
         {myId ? (
           <button className="primary-button" type="button" disabled={busy || ready} onClick={onReady}>
-            {ready ? `等其他人 ${game.ready.length}/${game.players.length}` : "下一轮"}{secondsLeft !== null && <small>{secondsLeft}s</small>}
+            {ready ? `等其他人 ${game.ready.length}/${readyNeeded}` : "下一轮"}{secondsLeft !== null && <small>{secondsLeft}s</small>}
           </button>
         ) : (
-          <span className="f7-muted">等玩家点「下一轮」 {game.ready.length}/{game.players.length}{secondsLeft !== null ? ` · ${secondsLeft}s` : ""}</span>
+          <span className="f7-muted">等玩家点「下一轮」 {game.ready.length}/{readyNeeded}{secondsLeft !== null ? ` · ${secondsLeft}s` : ""}</span>
         )}
       </footer>
     </section>

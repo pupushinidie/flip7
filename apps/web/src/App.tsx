@@ -193,6 +193,8 @@ function App() {
   }
 
   const kickMember = (memberId: string) => roomCommand((ack) => socket.emit("room:kick", memberId, ack));
+  const addBot = () => roomCommand((ack) => socket.emit("room:add-bot", ack));
+  const setAuto = (enabled: boolean) => roomCommand((ack) => socket.emit("room:auto", enabled, ack));
   const changeBrutal = (value: boolean) => roomCommand((ack) => socket.emit("room:settings", { brutal: value }, ack));
   const voteRematch = (accept: boolean) => roomCommand((ack) => socket.emit("room:rematch", accept, ack));
   async function dissolveRoom() {
@@ -230,6 +232,7 @@ function App() {
           chat={<RoomChat room={room} voice={voice} />}
           onCommand={submitGameCommand}
           onRematch={voteRematch}
+          onAuto={setAuto}
           onDissolve={dissolveRoom}
           watchId={watched}
           onWatch={setWatchId}
@@ -260,6 +263,7 @@ function App() {
           onLeave={leaveRoom}
           onStart={startGame}
           onKick={kickMember}
+          onAddBot={addBot}
           onDissolve={dissolveRoom}
           onBrutal={changeBrutal}
           chat={<RoomChat room={room} voice={voice} />}
@@ -362,7 +366,7 @@ function App() {
                   </div>
                   <label className="field-label field-label-spaced" htmlFor="room-mode">玩法</label>
                   <BrutalOptions id="room-mode" value={brutal} onChange={setBrutal} />
-                  <p className="field-hint">至少 3 位玩家后，房主即可开始。</p>
+                  <p className="field-hint">至少 3 位玩家后，房主即可开始；空座位可以加人机。</p>
                 </>
               ) : (
                 <>
@@ -448,6 +452,7 @@ function RoomView({
   onLeave,
   onStart,
   onKick,
+  onAddBot,
   onDissolve,
   onBrutal,
   chat,
@@ -460,6 +465,7 @@ function RoomView({
   onLeave: () => void;
   onStart: () => void;
   onKick: (memberId: string) => void;
+  onAddBot: () => void;
   onDissolve: () => void;
   onBrutal: (value: boolean) => void;
   chat: ReactNode;
@@ -513,9 +519,10 @@ function RoomView({
                   </div>
                   <div className="player-details">
                     <strong>{member.name}{member.id === socket.id ? <small>你</small> : null}</strong>
-                    <span>{member.isHost ? "房主" : "已加入"}</span>
+                    <span>{member.isHost ? "房主" : member.bot ? "人机 · 普通难度" : "已加入"}</span>
                   </div>
                   {member.isHost && <span className="host-badge">房主</span>}
+                  {member.bot && <span className="bot-badge">人机</span>}
                   {isHost && !member.isHost && (
                     <button className="kick-button" type="button" onClick={() => onKick(member.id)} title={`把 ${member.name} 移出房间`}>移出</button>
                   )}
@@ -525,6 +532,7 @@ function RoomView({
                 <div className="player-row open-seat" key={`open-${index}`}>
                   <div className="empty-avatar"><span>＋</span></div>
                   <div className="player-details"><strong>等待玩家加入</strong><span>{room.access.open ? "公开房间，路过的人也能加入" : "分享房间码邀请朋友"}</span></div>
+                  {isHost && <button className="quiet-button add-bot-button" type="button" onClick={onAddBot} disabled={busy}>加人机</button>}
                 </div>
               ))}
             </div>
@@ -543,7 +551,7 @@ function RoomView({
               ) : (
                 <div className="host-wait-note"><span className="pulse-dot" /> {spectating ? "等房主开始，开始后在这里观战" : "等待房主开始对局"}</div>
               )}
-              {isHost && room.members.length < 3 && <p className="field-hint centered">还需要至少 {3 - room.members.length} 位玩家加入。</p>}
+              {isHost && room.members.length < 3 && <p className="field-hint centered">还需要至少 {3 - room.members.length} 位玩家加入，也可以点空座位上的「加人机」。</p>}
             </div>
           </section>
           <div className="f7-room-chat">{chat}</div>

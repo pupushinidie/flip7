@@ -11,6 +11,10 @@ import { roomRole, RoomSettingsPanel, SeatSwitch } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 import { ThemeToggle, useTheme } from "./theme.js";
 import { useVoice } from "./voice.js";
+import { TutorialInvite } from "./tutorial/Invite.js";
+import { readTutorial } from "./tutorial/storage.js";
+import { GAME_ID } from "./tutorialGame.js";
+import TutorialMode from "./TutorialMode.js";
 
 type EntryMode = "create" | "join";
 
@@ -42,6 +46,26 @@ function App() {
   // 观战时从谁的座位看（默认第一位玩家）。
   const [watchId, setWatchId] = useState("");
   const voice = useVoice(room);
+  // 新手教程：首页或等候房间点进来（地址带 ?tutorial 时直接打开，游戏中心可以直接链过来）
+  const [tutorialOpen, setTutorialOpen] = useState(() => new URLSearchParams(window.location.search).has("tutorial"));
+
+  function closeTutorial() {
+    setTutorialOpen(false);
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("tutorial")) {
+      params.delete("tutorial");
+      const query = params.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+    }
+  }
+
+  // 在等候房间里看教程时，房主一开局就回到牌桌（不然这一步会超时、转成托管）
+  useEffect(() => {
+    if (tutorialOpen && room?.status === "playing") {
+      closeTutorial();
+      setNotice("对局开始了，教程先停在这里。");
+    }
+  }, [tutorialOpen, room?.status]);
 
   // 在房间里时服务端不推送在线牌桌列表；回到首页时主动拉一次最新的。
   useEffect(() => {
@@ -216,6 +240,15 @@ function App() {
     }
   }
 
+  if (tutorialOpen && room?.status !== "playing") {
+    return (
+      <main className="app-shell f7-game tut-on">
+        <TutorialMode name={name} brand={<Brand />} themeToggle={themeToggle} waitingRoom={room?.code} onExit={closeTutorial} />
+        {confirmDialog}
+      </main>
+    );
+  }
+
   if (room?.status === "playing" && room.game) {
     const players = room.game.players;
     const watched = players.some((player) => player.id === watchId) ? watchId : players[0]!.id;
@@ -267,6 +300,15 @@ function App() {
           onDissolve={dissolveRoom}
           onBrutal={changeBrutal}
           chat={<RoomChat room={room} voice={voice} />}
+          tutorial={
+            <TutorialInvite
+              record={readTutorial(GAME_ID)}
+              title="等人的时候，先学一下？"
+              text="咕噜嘎带你在真牌桌上走一局，3 分钟。不会离开房间，房主一开局就自动回来。"
+              again="再看一遍新手教程（不会离开房间）"
+              onOpen={() => setTutorialOpen(true)}
+            />
+          }
         />
         {confirmDialog}
       </main>
@@ -293,6 +335,13 @@ function App() {
             一轮一轮地翻牌：每次决定再要一张，还是见好就收。翻到和面前重复的数字就爆掉，这一轮白干；
             凑齐 7 张不同的数字就是「翻七」，额外 +15。冻结、翻三、二次机会可以塞给别人。先到 200 分的那一轮打完，总分最高的人获胜。
           </p>
+          <TutorialInvite
+            record={readTutorial(GAME_ID)}
+            title="第一次玩？3 分钟学会"
+            text="咕噜嘎在真牌桌上带你走一局，学完和人机练一局。"
+            again="再看一遍新手教程"
+            onOpen={() => setTutorialOpen(true)}
+          />
           <img className="f7-hero" src={art.hero} alt="" />
           <div className="f7-showcase" aria-hidden="true">
             {[1, 4, 7, 9, 12].map((value) => <CardView key={value} card={{ kind: "number", value }} />)}
@@ -456,6 +505,7 @@ function RoomView({
   onDissolve,
   onBrutal,
   chat,
+  tutorial,
 }: {
   room: LobbyRoomSnapshot;
   busy: boolean;
@@ -469,6 +519,8 @@ function RoomView({
   onDissolve: () => void;
   onBrutal: (value: boolean) => void;
   chat: ReactNode;
+  /** 「新手教程」入口卡（观战的人不显示）。 */
+  tutorial: ReactNode;
 }) {
   const { isHost, spectating } = roomRole(room);
   const openSeats = Math.max(0, room.capacity - room.members.length);
@@ -503,6 +555,7 @@ function RoomView({
             ) : (
               <div className="room-code-caption">从首页列表进来观战，看不到房间码</div>
             )}
+            {!spectating && tutorial}
           </section>
 
           <section className="room-panel player-panel">

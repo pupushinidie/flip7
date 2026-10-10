@@ -462,3 +462,13 @@ button.f7-seat.pickable:hover { filter: brightness(1.15); }
 @media (prefers-reduced-motion: reduce) {
   .f7-card.fresh, .f7-stamp, .f7-fx, .f7-seat.actor { animation: none; }
 }
+
+/* ---------- 新手教程和「提示」 ---------- */
+.app-shell .f7-hint { flex: none; width: auto; min-height: 0; margin: 0; padding: 2px 8px; font-size: 12px; }
+.app-shell .f7-hint small { margin-left: 4px; color: var(--muted); font-size: 12px; }
+.app-shell .f7-hint.on { color: var(--gold); }
+.f7-log-title { margin: 0; color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 400; }
+.tut-checklist h3 { margin-top: 0; color: var(--text); font-family: inherit; font-size: 12px; font-weight: 400; }
+.tut-checklist h3 small { margin-left: 6px; color: var(--muted); font-size: 12px; }
+.app-shell .f7-final-actions { justify-content: center; margin-top: 16px; }
+.app-shell .f7-final-actions :is(.primary-button, .quiet-button) { width: auto; margin: 0; }

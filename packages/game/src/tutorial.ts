@@ -192,7 +192,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     kind: "info", id: "finale", finale: true, face: "happy",
     say: "你已经会玩了！",
-    note: "接下来和两个咕噜从头打一局练习。拿不准的时候点「提示」（键盘 H），我告诉你我会怎么走。",
+    note: "接下来和两个咕噜从头打一局练习。拿不准的时候点「提示」（键盘 T），我告诉你我会怎么走。",
   },
 ];
 

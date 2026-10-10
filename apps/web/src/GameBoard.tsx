@@ -16,6 +16,9 @@ import { ACTION_HELP, CardBack, CardView, cardIcon, cardName } from "./cards.js"
 import GameRules from "./GameRules.js";
 import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import { socket } from "./socket.js";
+import { Coach, TipToast } from "./tutorial/Coach.js";
+import { useFirstTimeTips } from "./tutorial/tips.js";
+import { detectTips, GAME_ID, hintFor, TIPS, type Hint } from "./tutorialGame.js";
 
 interface GameBoardProps {
   readonly room: LobbyRoomSnapshot;
@@ -37,6 +40,18 @@ interface GameBoardProps {
   readonly onWatch: (playerId: string) => void;
   /** 观战的人离开。 */
   readonly onLeave: () => void;
+  /** 自己在 room.members 里的 id；默认 socket.id，新手教程里传固定值。 */
+  readonly selfMemberId?: string;
+  /**
+   * online：真实对局（默认；只有自己和人机时能看提示，第一次遇到的事出小贴士）；
+   * tutorial：新手教程的剧本进行中（咕噜嘎在讲，不出提示和小贴士）；
+   * practice：教程后的练习局（随时能看提示）。
+   */
+  readonly mode?: "online" | "tutorial" | "practice";
+  /** 结算框里替代「再来一局」的按钮（练习局放「结束教程」「再练一局」）。 */
+  readonly finalActions?: ReactNode;
+  /** 先不弹结算框（教程里先讲完翻七再弹）。 */
+  readonly finalHidden?: boolean;
 }
 
 function useCountdown(room: LobbyRoomSnapshot): number | null {
@@ -255,7 +270,7 @@ function Seat({
             {/* 离线的人也由人机代打 */}
             {!seated?.bot && (seated?.auto || !online) && <em className="f7-tag auto">托管</em>}
             {!online && <em className="f7-tag off">离线</em>}
-            {player.secondChance && <img className="f7-chip-icon" src={art.secondChance} alt="二次机会" title={ACTION_HELP.secondChance} />}
+            {player.secondChance && <img className="f7-chip-icon" src={art.secondChance} alt="二次机会" title={ACTION_HELP.secondChance} data-tutorial={`sc:${player.id}`} />}
             {player.actions.map((card) => <img key={card.id} className="f7-chip-icon" src={cardIcon(card.kind)!} alt={cardName(card)} title={ACTION_HELP[card.kind as "freeze"]} />)}
             <span className={`f7-status s-${status}`}>{player.flip7 ? "翻七！" : isActor && game.stage === "turn" ? "思考中" : STATUS_LABEL[player.status]}</span>
           </small>
@@ -292,15 +307,18 @@ function Seat({
   );
   const style = { "--seat": seatColor(player.color) } as CSSProperties;
   return pickable ? (
-    <button type="button" className={classes} style={style} onClick={onPick}>{body}</button>
+    <button type="button" className={classes} style={style} onClick={onPick} data-tutorial={`seat:${player.id}`}>{body}</button>
   ) : (
-    <section className={classes} style={style} aria-label={`${player.name}的牌`}>{body}</section>
+    <section className={classes} style={style} aria-label={`${player.name}的牌`} data-tutorial={`seat:${player.id}`}>{body}</section>
   );
 }
 
-function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onAuto, onDissolve, watchId, onWatch, onLeave }: GameBoardProps) {
+function GameBoard({
+  room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onAuto, onDissolve, watchId, onWatch, onLeave,
+  selfMemberId, mode = "online", finalActions, finalHidden = false,
+}: GameBoardProps) {
   const game = room.game!;
-  const member = room.members.find((candidate) => candidate.id === socket.id);
+  const member = room.members.find((candidate) => candidate.id === (selfMemberId ?? socket.id));
   // 观战的人没有座位：牌桌按 watchId 那位玩家的座位摆（me 就是他），但什么都不能点，也不叫「你」。
   const spectating = !member;
   const myId = member?.playerId ?? watchId;
@@ -321,6 +339,15 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
   const firstVersion = useRef(game.version);
   const shownNotice = game.version === firstVersion.current ? notice : "";
   const send = (command: GameCommand) => { if (!busy) onCommand(command); };
+
+  // 「提示」：只有自己和人机时（教程后的练习局，或一个人加人机开的房间）才有
+  const botsOnly = room.members.every((candidate) => candidate.id === member?.id || candidate.bot);
+  const canHint = !spectating && !autoPlaying && myMove && (mode === "practice" || (mode === "online" && botsOnly));
+  const [hint, setHint] = useState<{ version: number; hint: Hint } | null>(null);
+  const shownHint = hint && hint.version === game.version && canHint ? hint.hint : null;
+  const toggleHint = () => setHint((current) => (current && current.version === game.version ? null : { version: game.version, hint: hintFor(game, myId) }));
+  // 第一次遇到某件事时的小贴士（只在真实对局里出）
+  const tips = useFirstTimeTips(GAME_ID, game.version, () => detectTips(game, myId), TIPS, mode === "online" && !spectating);
 
   // 只在 version 变了的时候播新牌动画（聊天也会推整个房间状态）；刚进房间 / 重连时不播。
   const fresh = useMemo<Fresh>(
@@ -367,7 +394,9 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const key = event.key.toLowerCase();
-      if (myMove && game.stage === "turn" && (key === "h" || key === " ")) {
+      if (canHint && key === "t") {
+        toggleHint();
+      } else if (myMove && game.stage === "turn" && (key === "h" || key === " ")) {
         event.preventDefault();
         send({ type: "HIT" });
       } else if (myMove && game.stage === "turn" && key === "s") {
@@ -452,7 +481,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
         {brand}
         <div className="f7-round">
           <span>第 <b>{game.round}</b> 轮</span>
-          <span className="f7-goal">先到 {game.config.targetScore} 分</span>
+          <span className="f7-goal" data-tutorial="goal">先到 {game.config.targetScore} 分</span>
           {game.config.brutal && <span className="f7-brutal" title="残酷模式：修饰牌可以给任何人；翻七可以改成罚一位对手 −15">残酷</span>}
         </div>
         <div className="f7-topbar-right">
@@ -495,6 +524,11 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
             <div className="f7-action-head">
               {actor && game.stage !== "roundEnd" && <i className="f7-dot" style={{ background: seatColor(actor.color) }} />}
               <h2>{headline}</h2>
+              {canHint && (
+                <button className={shownHint ? "quiet-button f7-hint on" : "quiet-button f7-hint"} type="button" data-tutorial="hint" onClick={toggleHint}>
+                  提示<small>T</small>
+                </button>
+              )}
               {game.phase === "playing" && secondsLeft !== null && <b className={secondsLeft <= 10 ? "f7-timer low" : "f7-timer"}>{secondsLeft}s</b>}
             </div>
             {detail && <p className="f7-action-detail">{detail}</p>}
@@ -506,19 +540,19 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
 
             {myMove && !autoPlaying && game.stage === "turn" && (
               <div className="f7-buttons">
-                <button className="primary-button f7-hit" type="button" disabled={busy} onClick={() => send({ type: "HIT" })}>要牌<small>H</small></button>
-                <button className="quiet-button f7-stay" type="button" disabled={busy} onClick={() => send({ type: "STAY" })}>停牌<small>S</small></button>
+                <button className="primary-button f7-hit" type="button" disabled={busy} data-tutorial="hit" onClick={() => send({ type: "HIT" })}>要牌<small>H</small></button>
+                <button className="quiet-button f7-stay" type="button" disabled={busy} data-tutorial="stay" onClick={() => send({ type: "STAY" })}>停牌<small>S</small></button>
               </div>
             )}
             {myMove && !autoPlaying && giving && (
-              <div className="f7-target-list">
+              <div className="f7-target-list" data-tutorial="targets">
                 <CardView card={giving} className="f7-giving" />
                 <div>
                   {targets.map((index) => {
                     const player = game.players[index]!;
                     const odds = player.status === "active" ? Math.round(bustChance(game, player) * 100) : null;
                     return (
-                      <button key={player.id} type="button" className="quiet-button" disabled={busy} onClick={() => pick(index)}>
+                      <button key={player.id} type="button" className="quiet-button" disabled={busy} data-tutorial={`target:${player.id}`} onClick={() => pick(index)}>
                         <i className="f7-dot" style={{ background: seatColor(player.color) }} />
                         {index === myIndex ? "自己" : player.name}
                         <small>本轮 {scorePlayer(game, index).total}{odds !== null && giving.kind === "flipThree" ? ` · 每张爆 ${odds}%` : ""}</small>
@@ -530,10 +564,10 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
             )}
             {myMove && !autoPlaying && game.stage === "flip7Choice" && (
               <div className="f7-target-list flip7">
-                <button className="primary-button" type="button" disabled={busy} onClick={() => send({ type: "FLIP7", target: null })}>自己 +15</button>
+                <button className="primary-button" type="button" disabled={busy} data-tutorial="flip7:self" onClick={() => send({ type: "FLIP7", target: null })}>自己 +15</button>
                 <div>
                   {game.players.map((player, index) => index === myIndex ? null : (
-                    <button key={player.id} type="button" className="quiet-button" disabled={busy} onClick={() => pick(index)}>
+                    <button key={player.id} type="button" className="quiet-button" disabled={busy} data-tutorial={`flip7:${player.id}`} onClick={() => pick(index)}>
                       <i className="f7-dot" style={{ background: seatColor(player.color) }} />{player.name}<small>总 {player.score} · 罚 −15</small>
                     </button>
                   ))}
@@ -558,7 +592,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                 <span>弃牌 {game.discardCount}</span>
               </div>
               {risk !== null && (
-                <div className={risk >= 0.35 ? "f7-risk high" : "f7-risk"} title="牌堆里和你面前数字重复的牌占多少">
+                <div className={risk >= 0.35 ? "f7-risk high" : "f7-risk"} title="牌堆里和你面前数字重复的牌占多少" data-tutorial="risk">
                   <span>再要一张爆掉</span>
                   <b>{me?.secondChance ? "0%" : `${Math.round(risk * 100)}%`}</b>
                 </div>
@@ -567,14 +601,15 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
             {(error || shownNotice) && <p className={error ? "f7-feedback error" : "f7-feedback"} role={error ? "alert" : "status"}>{error || shownNotice}</p>}
           </section>
 
+          {mode !== "online" && chat}
           <section className="f7-panel f7-tabs">
-            <div className="f7-tab-bar" role="tablist">
+            {mode !== "online" ? <h3 className="f7-log-title">动作记录</h3> : <div className="f7-tab-bar" role="tablist">
               <button type="button" role="tab" aria-selected={sideTab === "log"} className={sideTab === "log" ? "active" : ""} onClick={() => setSideTab("log")}>动作记录</button>
               <button type="button" role="tab" aria-selected={sideTab === "chat"} className={sideTab === "chat" ? "active" : ""} onClick={() => setSideTab("chat")}>
                 聊天{unread > 0 && <em>{unread}</em>}
               </button>
-            </div>
-            {sideTab === "log" ? (
+            </div>}
+            {sideTab === "log" || mode !== "online" ? (
               <ul className="f7-log">{log.map((line) => <li key={line.key}>{line.text}</li>)}</ul>
             ) : (
               <div className="f7-chat">{chat}</div>
@@ -582,7 +617,23 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
           </section>
         </aside>
       </div>
-      {game.phase === "finished" && <FinalDialog game={game} room={room} myId={selfId} spectating={spectating} onRematch={onRematch} onLeave={onLeave} />}
+      {game.phase === "finished" && !finalHidden && (
+        <FinalDialog game={game} room={room} myId={selfId} memberId={member?.id ?? ""} spectating={spectating} onRematch={onRematch} onLeave={onLeave} actions={finalActions} />
+      )}
+      {shownHint && (
+        <Coach
+          view={{
+            key: `hint-${game.version}`,
+            say: shownHint.say,
+            ...(shownHint.note ? { note: shownHint.note } : {}),
+            anchor: shownHint.anchor,
+            focus: false,
+            face: "think",
+            actions: <button className="quiet-button" type="button" onClick={() => setHint(null)}>知道了</button>,
+          }}
+        />
+      )}
+      {tips.tip && <TipToast tip={tips.tip} onClose={tips.dismiss} onNever={tips.never} />}
     </div>
   );
 }
@@ -613,7 +664,7 @@ function RoundSummary({ game, myId, readyNeeded, secondsLeft, busy, onReady, onH
   const target = game.config.targetScore;
   const ready = game.ready.includes(myId);
   return (
-    <section className="f7-summary" aria-label={`第 ${game.round} 轮结算`}>
+    <section className="f7-summary" aria-label={`第 ${game.round} 轮结算`} data-tutorial="summary">
       <header>
         <h2>第 {game.round} 轮结算</h2>
         <button className="quiet-button" type="button" onClick={onHide}>看牌桌</button>
@@ -636,7 +687,7 @@ function RoundSummary({ game, myId, readyNeeded, secondsLeft, busy, onReady, onH
       </ol>
       <footer>
         {myId ? (
-          <button className="primary-button" type="button" disabled={busy || ready} onClick={onReady}>
+          <button className="primary-button" type="button" disabled={busy || ready} onClick={onReady} data-tutorial="ready">
             {ready ? `等其他人 ${game.ready.length}/${readyNeeded}` : "下一轮"}{secondsLeft !== null && <small>{secondsLeft}s</small>}
           </button>
         ) : (
@@ -647,16 +698,20 @@ function RoundSummary({ game, myId, readyNeeded, secondsLeft, busy, onReady, onH
   );
 }
 
-function FinalDialog({ game, room, myId, spectating, onRematch, onLeave }: {
+function FinalDialog({ game, room, myId, memberId, spectating, onRematch, onLeave, actions }: {
   game: GameState;
   room: LobbyRoomSnapshot;
   myId: string;
+  /** 自己在 room.members 里的 id（看自己点没点「再来一局」）。 */
+  memberId: string;
   spectating: boolean;
   onRematch: (accept: boolean) => void;
   onLeave: () => void;
+  /** 替代「再来一局」的按钮（教程的练习局）。 */
+  actions?: ReactNode;
 }) {
   const result = game.finalResult!;
-  const accepted = room.rematch?.acceptedIds.includes(socket.id ?? "") ?? false;
+  const accepted = room.rematch?.acceptedIds.includes(memberId) ?? false;
   const won = (id: string) => result.winners.includes(id);
   const rows = [...game.players].sort((a, b) => b.score - a.score);
   const title = won(myId) ? (result.winners.length > 1 ? "并列获胜！" : "你赢了！") : `${result.winners.map((id) => game.players.find((p) => p.id === id)?.name).join("、")} 获胜`;
@@ -666,9 +721,9 @@ function FinalDialog({ game, room, myId, spectating, onRematch, onLeave }: {
         <img className="f7-final-icon" src={art.flip7} alt="" />
         <h2 id="f7-final-title">{title}</h2>
         <p className="f7-muted">打了 {game.round} 轮，有人到了 {game.config.targetScore} 分，总分最高者获胜。</p>
-        <ol className="f7-standings">
+        <ol className="f7-standings" data-tutorial="standings">
           {rows.map((player, rank) => (
-            <li key={player.id} className={won(player.id) ? "winner" : ""}>
+            <li key={player.id} className={won(player.id) ? "winner" : ""} data-tutorial={`final:${player.id}`}>
               <span className="f7-rank">{rank + 1}</span>
               <i className="f7-dot" style={{ background: seatColor(player.color) }} />
               <strong>{player.name}{player.id === myId ? "（你）" : ""}</strong>
@@ -676,7 +731,9 @@ function FinalDialog({ game, room, myId, spectating, onRematch, onLeave }: {
             </li>
           ))}
         </ol>
-        {spectating ? (
+        {actions ? (
+          <div className="gm-panel-actions f7-final-actions">{actions}</div>
+        ) : spectating ? (
           <div className="f7-rematch">
             <span>{room.rematch ? `等玩家决定要不要再来一局（${room.rematch.acceptedIds.length}/${room.members.length} 人同意）` : "对局结束"}</span>
             <div className="gm-panel-actions">

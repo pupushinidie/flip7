@@ -80,3 +80,5 @@ pm2 按仓库根目录的 `ecosystem.config.cjs` 直接启动一个 `node --impo
 进了房间（等候房间、对局、观战）和新手教程里循环放 `apps/web/public/bgm/flip7.mp3`，首页和房间列表不放。曲子是他用 Suno 做的，原文件在桌面 `bgm v1/翻七.mp3`（2026-10-11 接入）。播放器是 `apps/web/src/bgm.tsx`（大厅和各游戏是同一份文件，改了要同步到所有仓库）：一个页面只有一个播放器，从等候房间进牌桌不会从头放；循环处交叉淡化；切到别的标签页时暂停。顶栏的 ♪ 按钮能开关、调音量，设置全站共用（localStorage `gm-music`、`gm-music-volume`，默认开、音量 60）。浏览器要求先点过页面才能出声，从首页点进房间正好满足。
 
 换曲子：把新文件放进 `apps/web/public/bgm/`，用 `~/miniconda3/envs/quant/bin/python -I ~/projects/qa-reports/tools/bgm-analyze.py <文件>` 量出 gain / start / end，改 `App.tsx` 里的 `BGM`。本地检查：`URL=http://localhost:<网页端口>/ node ~/projects/qa-reports/tools/bgm-check.mjs`（进房间、开局、离开、开关、顶栏是否被挤成两行）。
+
+动作音效在 `apps/web/src/game-sfx.ts`（共用的音效库是 `gm-sound.tsx`，各仓库同一份）：按每一步的 events 放声音，和翻牌动画对齐；自己的动作响亮，别人的减半，观战都算别人的；刚进房间 / 重连不出声。发牌、要牌、翻三翻出的牌 → 翻牌声（修饰牌再加一声硬币）；停牌 → 筹码；爆掉 → 下滑的失手声；冻结 → 冰晶叮叮（招牌）；翻三 → 一击 + 连翻三张；二次机会挡下重复 → 盾牌「当」（招牌），领到二次机会 → 收牌 + 亮光；交修饰牌 → 出牌声；作废 → 轻「过」；翻七 → 游乐场铃铛 + 上行琶音（招牌大奖）；翻七选 +15 → 得分，罚人 −15 → 一击；洗牌堆 → 洗牌；新一轮 → 小号角；结算自己有分 → 得分；轮到你 / 交出回合 / 最后 5 秒倒计时 / 自己超时 / 终局输赢都有提示音；选目标时点到不能选的座位 → 「不行」。

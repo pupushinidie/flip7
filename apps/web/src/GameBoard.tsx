@@ -15,6 +15,8 @@ import { art, backdropFor, FX_FRAMES, seatColor } from "./art.js";
 import { ACTION_HELP, CardBack, CardView, cardIcon, cardName } from "./cards.js";
 import GameRules from "./GameRules.js";
 import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
+import { useGameSfx } from "./game-sfx.js";
+import { sfx, useSfxCountdown } from "./gm-sound.js";
 import { socket } from "./socket.js";
 import { Coach, TipToast } from "./tutorial/Coach.js";
 import { useFirstTimeTips } from "./tutorial/tips.js";
@@ -231,6 +233,7 @@ function Seat({
   pickable,
   hint,
   onPick,
+  choosing,
 }: {
   game: GameState;
   index: number;
@@ -242,6 +245,8 @@ function Seat({
   pickable: boolean;
   hint: string | null;
   onPick: () => void;
+  /** 自己正在选目标：点到不能选的座位响一声「不行」。 */
+  choosing: boolean;
 }) {
   const player = game.players[index]!;
   const live = scorePlayer(game, index);
@@ -309,7 +314,7 @@ function Seat({
   return pickable ? (
     <button type="button" className={classes} style={style} onClick={onPick} data-tutorial={`seat:${player.id}`}>{body}</button>
   ) : (
-    <section className={classes} style={style} aria-label={`${player.name}的牌`} data-tutorial={`seat:${player.id}`}>{body}</section>
+    <section className={classes} style={style} aria-label={`${player.name}的牌`} data-tutorial={`seat:${player.id}`} onClick={choosing ? () => sfx.deny() : undefined}>{body}</section>
   );
 }
 
@@ -329,6 +334,9 @@ function GameBoard({
   const actor = game.players[game.actor];
   const myMove = !spectating && game.phase === "playing" && game.actor === myIndex && myIndex !== -1;
   const secondsLeft = useCountdown(room);
+  // 动作音效（game-sfx.ts）和自己行动最后 5 秒的倒计时提示音
+  useGameSfx(game, selfId);
+  useSfxCountdown(myMove && member?.auto !== true, secondsLeft);
   const nameOf = (playerId: string) => (playerId === selfId ? "你" : game.players.find((player) => player.id === playerId)?.name ?? "?");
   const memberOf = (playerId: string) => room.members.find((candidate) => candidate.playerId === playerId);
   const online = (playerId: string) => memberOf(playerId)?.connected ?? false;
@@ -511,6 +519,7 @@ function GameBoard({
               pickable={canPick(index)}
               hint={pickHint(index)}
               onPick={() => pick(index)}
+              choosing={myMove && (giving !== null || game.stage === "flip7Choice")}
             />
           ))}
           {game.stage === "roundEnd" && game.phase === "playing" && !hideSummary && (

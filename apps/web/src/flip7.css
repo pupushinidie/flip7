@@ -472,3 +472,10 @@ button.f7-seat.pickable:hover { filter: brightness(1.15); }
 .tut-checklist h3 small { margin-left: 6px; color: var(--muted); font-size: 12px; }
 .app-shell .f7-final-actions { justify-content: center; margin-top: 16px; }
 .app-shell .f7-final-actions :is(.primary-button, .quiet-button) { width: auto; margin: 0; }
+/* 等候房间：教程入口放在标题和「离开房间」中间 */
+.f7-room-tut { flex: 1; min-width: 0; max-width: 620px; align-self: center; }
+.f7-room-tut .tut-invite { margin: 0; padding: 8px 12px; }
+@media (max-width: 759px) {
+  .f7-room .room-heading { flex-wrap: wrap; }
+  .f7-room-tut { flex-basis: 100%; order: 3; max-width: none; }
+}

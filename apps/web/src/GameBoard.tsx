@@ -664,12 +664,12 @@ function RoundSummary({ game, myId, readyNeeded, secondsLeft, busy, onReady, onH
   const target = game.config.targetScore;
   const ready = game.ready.includes(myId);
   return (
-    <section className="f7-summary" aria-label={`第 ${game.round} 轮结算`} data-tutorial="summary">
+    <section className="f7-summary" aria-label={`第 ${game.round} 轮结算`}>
       <header>
         <h2>第 {game.round} 轮结算</h2>
         <button className="quiet-button" type="button" onClick={onHide}>看牌桌</button>
       </header>
-      <ol>
+      <ol data-tutorial="summary">
         {rows.map(({ player, index }) => {
           const result = player.lastRound!;
           return (

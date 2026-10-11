@@ -533,6 +533,7 @@ function RoomView({
           <h1>{spectating ? "你在观战。" : room.status === "waiting" ? "牌桌准备中。" : "好戏即将开始。"}</h1>
           <p>{spectating ? "等房主开始对局；有空座位时可以坐下一起玩。" : room.status === "waiting" ? "把房间码分享给朋友，等大家就位后开始。" : "对局马上开始。"}</p>
         </div>
+        {!spectating && room.status === "waiting" && <div className="f7-room-tut">{tutorial}</div>}
         <div className="room-heading-actions">
           {isHost && <button className="quiet-button danger" type="button" onClick={onDissolve} disabled={busy}>解散房间</button>}
           <button className="quiet-button" type="button" onClick={onLeave} disabled={busy || (room.status === "playing" && !spectating)}>
@@ -555,7 +556,6 @@ function RoomView({
             ) : (
               <div className="room-code-caption">从首页列表进来观战，看不到房间码</div>
             )}
-            {!spectating && tutorial}
           </section>
 
           <section className="room-panel player-panel">

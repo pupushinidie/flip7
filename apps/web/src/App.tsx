@@ -242,7 +242,7 @@ function App() {
 
   if (tutorialOpen && room?.status !== "playing") {
     return (
-      <main className="app-shell f7-game tut-on">
+      <main data-gc-table className="app-shell f7-game tut-on">
         <TutorialMode name={name} brand={<Brand />} themeToggle={themeToggle} waitingRoom={room?.code} onExit={closeTutorial} />
         {confirmDialog}
       </main>
@@ -253,7 +253,7 @@ function App() {
     const players = room.game.players;
     const watched = players.some((player) => player.id === watchId) ? watchId : players[0]!.id;
     return (
-      <main className="app-shell f7-game">
+      <main data-gc-table className="app-shell f7-game">
         <GameBoard
           room={room}
           busy={busy}

@@ -74,3 +74,9 @@ node scripts/test-bot.mjs host 机器人 4 --start-at=4   # 陪玩机器人，�
 服务器上 `~/flip7`，pm2 进程 `flip7`（端口 3010），网页在 `/var/www/flip7`，Caddy `handle_path /flip7/*`（也在付费网关 `@games` 里）。本机运行 `~/projects/deploy.sh flip7`（服务器拉 GitHub 上的 main）。
 
 pm2 按仓库根目录的 `ecosystem.config.cjs` 直接启动一个 `node --import tsx` 进程跑服务端（不经过 `npm start`）。端口和密钥存在 pm2 里，不进仓库。
+
+## 背景音乐
+
+进了房间（等候房间、对局、观战）和新手教程里循环放 `apps/web/public/bgm/flip7.mp3`，首页和房间列表不放。曲子是他用 Suno 做的，原文件在桌面 `bgm v1/翻七.mp3`（2026-10-11 接入）。播放器是 `apps/web/src/bgm.tsx`（大厅和各游戏是同一份文件，改了要同步到所有仓库）：一个页面只有一个播放器，从等候房间进牌桌不会从头放；循环处交叉淡化；切到别的标签页时暂停。顶栏的 ♪ 按钮能开关、调音量，设置全站共用（localStorage `gm-music`、`gm-music-volume`，默认开、音量 60）。浏览器要求先点过页面才能出声，从首页点进房间正好满足。
+
+换曲子：把新文件放进 `apps/web/public/bgm/`，用 `~/miniconda3/envs/quant/bin/python -I ~/projects/qa-reports/tools/bgm-analyze.py <文件>` 量出 gain / start / end，改 `App.tsx` 里的 `BGM`。本地检查：`URL=http://localhost:<网页端口>/ node ~/projects/qa-reports/tools/bgm-check.mjs`（进房间、开局、离开、开关、顶栏是否被挤成两行）。

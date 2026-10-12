@@ -292,6 +292,7 @@ function App() {
   if (room) {
     return (
       <main className="app-shell f7-room">
+        <F7Backdrop />
         <header className="topbar">
           <Brand />
           <div className="topbar-right">
@@ -330,6 +331,7 @@ function App() {
 
   return (
     <main className="app-shell f7-home">
+      <F7Backdrop />
       <header className="topbar">
         <Brand />
         <div className="topbar-right">
@@ -483,6 +485,18 @@ function BrutalOptions({ id, value, onChange, disabled = false }: { id?: string;
           <span>{option.note}</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+/** 全屏背景：把对局场景铺满窗口（16:9 居中裁切），上面盖一层罩色让面板更突出。首页和等候房间放在 <main> 的第一个子元素。 */
+function F7Backdrop() {
+  const base = import.meta.env.BASE_URL;
+  return (
+    <div className="f7-backdrop" aria-hidden="true">
+      <div className="f7-backdrop-art f7-backdrop-art--day" style={{ backgroundImage: `url(${base}art/bg/day.png)` }} />
+      <div className="f7-backdrop-art f7-backdrop-art--night" style={{ backgroundImage: `url(${base}art/bg/night.png)` }} />
+      <div className="f7-backdrop-veil" />
     </div>
   );
 }

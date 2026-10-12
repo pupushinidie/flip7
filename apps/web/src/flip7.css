@@ -479,3 +479,19 @@ button.f7-seat.pickable:hover { filter: brightness(1.15); }
   .f7-room .room-heading { flex-wrap: wrap; }
   .f7-room-tut { flex-basis: 100%; order: 3; max-width: none; }
 }
+
+/* ---------- 全屏背景：首页、等候房间的场景铺满窗口 ---------- */
+.f7-backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #140a16; }
+.f7-backdrop-art {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, calc(100vh * 16 / 9));
+  height: max(100vh, calc(100vw * 9 / 16));
+  transform: translate(-50%, -50%);
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.f7-backdrop-art--day { display: none; }
+.f7-backdrop-veil { position: absolute; inset: 0; background: #0a050b; opacity: 0.4; }
+.app-shell.f7-home > :not(.f7-backdrop):not(.gm-modal-backdrop), .app-shell.f7-room > :not(.f7-backdrop):not(.gm-modal-backdrop) { position: relative; z-index: 1; }

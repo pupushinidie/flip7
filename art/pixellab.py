@@ -1,7 +1,12 @@
-"""PixelLab API 客户端：限速自动重试、后台任务轮询、花费记账和预算上限。
+"""PixelLab API 客户端（流水线标准版）：全站排队、限速自动重试、后台任务轮询、花费记账和预算上限。
+
+用法：把这个文件复制到游戏仓库的 art/pixellab.py（开工样张阶段复制到 ~/projects/pipeline/games/<id>/assets/work/），
+不要从老游戏复制，老游戏的副本没有排队。标准版在 ~/projects/pipeline/bin/pixellab.py。
 
 密钥从 ~/.config/pixellab/api_key 读取（或环境变量 PIXELLAB_API_KEY），不进仓库。
-每次调用都记进 art/ledger.jsonl；累计美元花费超过 BUDGET_USD 就拒绝继续调用。
+每次调用都记进本文件所在目录的 ledger.jsonl；累计美元花费超过 BUDGET_USD 就拒绝继续调用。
+全站排队：一个 PixelLab 账号同一时间只能跑一个任务，所有游戏的请求都先经过 ~/projects/pipeline/bin/pxqueue.py 排队，
+轮到了才发（见那个文件的说明）。开工样张这类急活用环境变量 PIXELLAB_PRIORITY=0 插队；看排队：python3 ~/projects/pipeline/bin/pxqueue.py status。
 """
 from __future__ import annotations
 
@@ -11,14 +16,23 @@ import os
 import pathlib
 import threading
 import time
+import contextlib
+import sys
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, str(pathlib.Path.home() / "projects" / "pipeline" / "bin"))
+try:
+    import pxqueue  # 全站 PixelLab 排队
+except ImportError:  # 没有流水线目录的机器上照常能用，只是不排队
+    pxqueue = None
+    print("[PixelLab] 没找到 ~/projects/pipeline/bin/pxqueue.py，这次不排队", file=sys.stderr)
 
 API = "https://api.pixellab.ai/v2"
 ART = pathlib.Path(__file__).resolve().parent
 LEDGER = ART / "ledger.jsonl"
-# 翻七单独记账，先以 $3 为上限（牌背、牌面、行动牌和修饰牌图标、牌桌场景、动画、头像）。
-BUDGET_USD = float(os.environ.get("PIXELLAB_BUDGET_USD", "3"))
+# 每个游戏单独记账。上限用环境变量 PIXELLAB_BUDGET_USD 设，默认 $8；他说过不要怕花钱，但要记账、汇报。
+BUDGET_USD = float(os.environ.get("PIXELLAB_BUDGET_USD", "8"))
 
 
 def _key() -> str:
@@ -62,18 +76,21 @@ def _request(method: str, path: str, body: dict | None = None) -> dict:
         method=method,
     )
     wait = 15
-    for attempt in range(RETRY_ATTEMPTS):
-        try:
-            with urllib.request.urlopen(request, timeout=240) as response:
-                return json.load(response)
-        except urllib.error.HTTPError as error:
-            detail = error.read()[:400]
-            if error.code != 429 or attempt == RETRY_ATTEMPTS - 1:
-                raise RuntimeError(f"HTTP {error.code} {path}: {detail!r}") from error
-            # 有频率限制：按 Retry-After（没有就指数退避）等一会儿再试
-            delay = RETRY_DELAY or int(error.headers.get("Retry-After") or wait)
-            time.sleep(delay)
-            wait = min(wait * 2, 120)
+    # 整个请求（包括 429 重试）都在全站排队里占着位置；提交任务前可能要等别的游戏用完
+    queue = pxqueue.turn(method, path, ART) if pxqueue else contextlib.nullcontext()
+    with queue:
+        for attempt in range(RETRY_ATTEMPTS):
+            try:
+                with urllib.request.urlopen(request, timeout=240) as response:
+                    return json.load(response)
+            except urllib.error.HTTPError as error:
+                detail = error.read()[:400]
+                if error.code != 429 or attempt == RETRY_ATTEMPTS - 1:
+                    raise RuntimeError(f"HTTP {error.code} {path}: {detail!r}") from error
+                # 还是撞上了频率限制（比如有没走排队的老脚本在跑）：按 Retry-After（没有就指数退避）等一会儿再试
+                delay = RETRY_DELAY or int(error.headers.get("Retry-After") or wait)
+                time.sleep(delay)
+                wait = min(wait * 2, 120)
     raise RuntimeError("unreachable")
 
 
@@ -169,7 +186,7 @@ DIRECTIONS = ["south", "south-east", "east", "north-east", "north", "north-west"
 def _download(url: str) -> bytes:
     """下载 PixelLab 返回的图片地址（预签名的图床链接）。不带 API key；
     图床会拒绝 Python 默认的 User-Agent，所以换一个普通的。"""
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 cantstop-art"})
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 seasalt-art"})
     with urllib.request.urlopen(request, timeout=120) as response:
         return response.read()
 

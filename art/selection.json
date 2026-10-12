@@ -21,5 +21,17 @@
   "avatar-6": "out/r1/avatar/avatar-40.png",
   "avatar-7": "out/r1/avatar/avatar-38.png",
   "avatar-8": "out/r1/avatar/avatar-26.png",
-  "avatar-9": "out/r1/avatar/avatar-12.png"
+  "avatar-9": "out/r1/avatar/avatar-12.png",
+  "bg": {
+    "_说明": "全屏匹配背景图（512x288，day/night），候选在 art/out/bg/",
+    "day": {
+      "file": "apps/web/public/art/bg/day.png",
+      "source": "art/out/bg/day-s1801.png",
+      "size": [
+        512,
+        288
+      ]
+    },
+    "night": "沿用了已有的 bg/night.png（本次未改）"
+  }
 }

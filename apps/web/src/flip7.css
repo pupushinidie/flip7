@@ -495,3 +495,7 @@ button.f7-seat.pickable:hover { filter: brightness(1.15); }
 .f7-backdrop-art--day { display: none; }
 .f7-backdrop-veil { position: absolute; inset: 0; background: #0a050b; opacity: 0.4; }
 .app-shell.f7-home > :not(.f7-backdrop):not(.gm-modal-backdrop), .app-shell.f7-room > :not(.f7-backdrop):not(.gm-modal-backdrop) { position: relative; z-index: 1; }
+
+/* 全屏背景上的标题/简介、等候房标题垫面板，让文字在图上清楚（参照遥远之地） */
+.app-shell .welcome-copy { padding: 16px 20px 20px; background: var(--panel); box-shadow: 0 0 0 var(--px) var(--edge); }
+.app-shell .room-heading { padding: 12px 16px; background: var(--panel); box-shadow: 0 0 0 var(--px) var(--edge); }
